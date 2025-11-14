@@ -1,23 +1,21 @@
-name: Docker Multi-Arch Build and Push (XtraBackup)
+name: Docker Multi-Arch Build (Dynamic Tag)
 
 on:
-  # 允许手动触发
+  # 允许手动触发，并定义输入参数
   workflow_dispatch:
     inputs:
       xtrabackup_tag:
         description: 'Percona XtraBackup Git Tag/Branch (e.g., 8.0, 8.0.35-33)'
         required: true
         default: '8.0.35-31'
-# 必须有 packages: write 权限才能推送到 GHCR
+
+# 权限设置
 permissions:
   contents: read
   packages: write
 
 env:
-  # 镜像名称，请替换 YOUR_GITHUB_USERNAME_OR_ORG 为您的用户名或组织名
-  IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/xtrabackup
-  # 默认的镜像标签
-  DEFAULT_TAG: 8.0-centos8
+  IMAGE_NAME: ghcr.io/usernameisnull/xtrabackup
 
 jobs:
   build_and_push:
@@ -28,11 +26,9 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up QEMU
-        # 启用 QEMU 模拟器，支持跨平台构建
         uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
-        # 启用 Buildx 插件，支持多架构构建
         uses: docker/setup-buildx-action@v3
 
       - name: Log in to GitHub Container Registry (GHCR)
@@ -40,7 +36,6 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          # GITHUB_TOKEN 是 GitHub 提供的默认密钥，用于操作 GHCR
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Define Image Tags
@@ -48,24 +43,22 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ${{ env.IMAGE_NAME }}
-          # 定义标签策略:
-          # - 如果是 tag push (e.g., v8.0), 使用 tag 作为标签
-          # - 否则使用默认标签
+          # 基于输入参数定义最终的镜像标签
           tags: |
-            type=semver,pattern={{version}}
-            type=raw,value=${{ env.DEFAULT_TAG }}
-            type=sha,format=short
+            # 主要标签：使用输入值 + 基础系统 (e.g., 8.0.35-33-centos8)
+            type=raw,value=${{ github.event.inputs.xtrabackup_tag }}-centos8
 
       - name: Build and Push Multi-Arch Docker Image
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./Dockerfile # 指定 Dockerfile 路径
-          # 指定要构建的架构
-          platforms: linux/amd64,linux/arm64
+          file: ./Dockerfile
+          platforms: linux/amd64,linux/arm64 # 构建多架构
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          # 使用 GitHub Actions Cache 加速构建
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          # **关键：传递输入参数给 Dockerfile 的 ARG**
+          build-args: |
+            XTRABACKUP_TAG=${{ github.event.inputs.xtrabackup_tag }}
