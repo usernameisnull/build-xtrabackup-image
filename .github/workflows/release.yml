@@ -1,0 +1,57 @@
+name: Build XtraBackup 8.0.35-31 (CentOS 8.3.2011)
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build Percona XtraBackup in CentOS 8.3.2011
+        run: |
+          docker run --rm \
+            -v $PWD:/workspace \
+            -w /workspace \
+            centos:8.3.2011 \
+            bash -c "
+              set -ex
+
+              dnf -y update &&
+              dnf -y install epel-release &&
+              dnf -y install \
+                git cmake gcc gcc-c++ bison pkgconfig \
+                make openssl-devel libaio libaio-devel \
+                automake autoconf libtool ncurses-devel \
+                libgcrypt-devel libev-devel libcurl-devel \
+                zlib-devel zstd lz4 procps-ng-devel \
+                python3-sphinx
+
+              # clone xtrabackup source
+              git clone https://github.com/percona/percona-xtrabackup.git src &&
+              cd src &&
+              git checkout 8.0 &&
+              git submodule update --init --recursive
+
+              mkdir build && cd build
+
+              cmake -DWITH_BOOST=../boost \
+                    -DDOWNLOAD_BOOST=ON \
+                    -DBUILD_CONFIG=xtrabackup_release \
+                    -DWITH_MAN_PAGES=OFF \
+                    ..
+
+              make -j\$(nproc)
+              make install DESTDIR=/workspace/output
+            "
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: xtrabackup-centos83
+          path: output
