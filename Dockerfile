@@ -1,18 +1,17 @@
-# Dockerfile for compiling Percona XtraBackup 8.0 on CentOS 8.3
+# Dockerfile for compiling Percona XtraBackup from a dynamic Git Tag
 
-# 使用用户指定的基础镜像
 FROM centos:8.3.2011
-# 1. 定义构建参数，用于接收 XtraBackup 的 Git Tag 或分支名
-# 默认值设置为 '8.0.35-31'
 ARG XTRABACKUP_TAG=8.0.35-31
 
-# 安装路径
+# 设置环境变量...
 ENV INSTALL_PATH /usr/local/xtrabackup
-# 设置 xtrabackup 二进制文件的环境变量
 ENV PATH="${INSTALL_PATH}/bin:${PATH}"
 
+# --- 解决 CentOS 8 源失效的关键步骤 ---
+RUN sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* && \
+    sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
+
 # 安装编译所需的依赖包
-# 依赖列表参考 Percona 官方文档 (yum/dnf)
 RUN dnf update -y && \
     dnf install -y epel-release && \
     dnf install -y \
