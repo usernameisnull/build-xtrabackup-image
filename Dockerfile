@@ -9,12 +9,13 @@ ENV PATH="${INSTALL_PATH}/bin:${PATH}"
 
 # --- 解决 CentOS 8 源失效的关键步骤 ---
 RUN sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* && \
-    sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
+    sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-* && \
+    yum makecache
 
 # 安装编译所需的依赖包
-RUN dnf update -y && \
-    dnf install -y epel-release && \
-    dnf install -y \
+RUN yum update -y && \
+    yum install -y epel-release && \
+    yum install -y \
         git \
         cmake \
         openssl-devel \
@@ -35,8 +36,8 @@ RUN dnf update -y && \
         gcc-c++ \
         vim-common \
         pkg-config && \
-    dnf clean all && \
-    rm -rf /var/cache/dnf
+    yum clean all && \
+    rm -rf /var/cache/yum
 
 # 克隆并编译 Percona XtraBackup
 WORKDIR /usr/src
@@ -65,9 +66,9 @@ RUN mkdir build && \
 
 # 3. 清理构建工具和源代码，减小最终镜像体积
 # 注意：只移除构建依赖（如 git, cmake, gcc-c++），运行时依赖（如 libaio, libcurl）保留
-RUN dnf remove -y git cmake automake autoconf bison libtool gcc-c++ && \
-    dnf clean all && \
-    rm -rf /usr/src/percona-xtrabackup /var/cache/dnf
+RUN yum remove -y git cmake automake autoconf bison libtool gcc-c++ && \
+    yum clean all && \
+    rm -rf /usr/src/percona-xtrabackup /var/cache/yum
 
 # 设置默认命令，验证安装是否成功
 CMD ["xtrabackup", "--version"]
