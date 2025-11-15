@@ -148,3 +148,60 @@ cmake \
 ```
 - make
 - make install 
+
+## 验证功能可用
+在arm上运行mysql容器:  
+```bash
+mkdir -p /tmp/mysql57-socket
+chown 999:999 /tmp/mysql57-socket
+chmod 755 /tmp/mysql57-socket
+
+docker run -d --name mysql57 \
+    -e MYSQL_ROOT_PASSWORD=Abc@123 \
+    -v $PWD/mysql57-data:/var/lib/mysql \
+    -v $PWD/mysql57-backup:/backup \
+    -v /tmp/mysql57-socket:/var/run/mysqld \
+    liupeng0518/mysql:5.7-arm64
+ 
+```
+在实例上创建2个数据库
+```text
+root@b5eb19752127:/# mysql -uroot -pAbc@123
+mysql: [Warning] Using a password on the command line interface can be insecure.
+Welcome to the MySQL monitor.  Commands end with ; or \g.
+Your MySQL connection id is 2
+Server version: 5.7.26-1+b1 (Debian)
+
+Copyright (c) 2000, 2019, Oracle and/or its affiliates. All rights reserved.
+
+Oracle is a registered trademark of Oracle Corporation and/or its
+affiliates. Other names may be trademarks of their respective
+owners.
+
+Type 'help;' or '\h' for help. Type '\c' to clear the current input statement.
+
+mysql> create database a123;
+Query OK, 1 row affected (0.00 sec)
+
+mysql> create database a456;
+Query OK, 1 row affected (0.00 sec)
+
+mysql>
+```
+在宿主机上备份
+```bash
+mkdir /backup
+xtrabackup \
+  --backup \
+  --target-dir=/backup/mysql-full \
+  --datadir=/root/mysql57-data \
+  --socket=/tmp/mysql57-socket/mysqld.sock \
+  --user=root \
+  --password=Abc@123
+ 
+```
+可以在/backup/mysql-full里看到对应的数据库目录
+```text
+root@iZt4nd1lbp4c0l4nowwyq8Z:/backup/mysql-full# ls
+a123  a456  backup-my.cnf  ib_buffer_pool  ibdata1  mysql  performance_schema  sys  xtrabackup_checkpoints  xtrabackup_info  xtrabackup_logfile
+```

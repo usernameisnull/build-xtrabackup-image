@@ -3,7 +3,7 @@ FROM centos:8.3.2011
 RUN sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-* && \
     sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-* && \
     yum makecache && \
-    yum install -y libaio && \
+    yum install -y libaio perl-DBD-MySQL && \
     yum clean all && \
     rm -rf /var/cache/yum
 # 设置工作目录（可选）

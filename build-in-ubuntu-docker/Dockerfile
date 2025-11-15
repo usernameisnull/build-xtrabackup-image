@@ -33,6 +33,6 @@ RUN wget -qO /root/percona-xtrabackup-2.4.26.zip https://github.com/percona/perc
       -DWITH_MAN_PAGES=OFF \
       -B .. \
     && make \
-    && make install \
+    && make install
 ENV PATH="/usr/local/xtrabackup/bin:${PATH}"
 
